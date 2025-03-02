@@ -3,7 +3,7 @@
 // it is a higher order function that takes a function as an argument and return a function
 const asyncHandler = (requestHandler) => {
   return (req, res, next) => {
-    Promise.resolve(requestHandler(req, res, next)).catch((error) => next(error)); // a promise return of type resolved, pending, and rejected
+      Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err))
   }
 }
 

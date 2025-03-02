@@ -4,7 +4,7 @@ import { User } from "../models/user.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"
 import { getCurrentUser } from "./user.controller.js"
 
 
@@ -113,10 +113,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Failed to upload thumbnail file on cloudinary");
     }
 
+    // console.log(videoFile, thumbnailFile);
+    const videoDuration = `${videoFile.duration}`;
 
-    const videoDuration = `${videoFile.duration / 60}:${videoFile.duration % 60}`;
-
-    const owner = getCurrentUser()._id;
+    const user = req.user||null ;
+    const owner = user._id;
 
     const video = await Video.create({
         videoFile: videoFile.url,
@@ -229,6 +230,26 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "the video id is not a valid id ");
 
     }
+
+    const preVideo = await Video.findById(videoId);
+    if(!preVideo){
+        throw new ApiError(400, "no video file found with this id");
+    }
+    const preVideoUrl = preVideo.videoFile||null;
+    const preVideoId = preVideoUrl.split("/").at(-1).split(".").at(0);
+    const prethumbnailUrl = preVideo.thumbnail||null;
+    const prethumbnailId = prethumbnailUrl.split("/").at(-1).split(".").at(0);
+
+    const deletePreVideo = await deleteOnCloudinary(preVideoId,"video");
+    if (deletePreVideo === null) {
+        new ApiError(400, "error while deleting the video file. ");
+    }
+
+    const deletePreThumbnail = await deleteOnCloudinary(prethumbnailId,"image");
+    if (deletePreThumbnail === null) {
+        new ApiError(400, "error while deleting the thumbnail file. ");
+    }
+
 
     const deletedVideo = await Video.findByIdAndDelete(videoId);
 
